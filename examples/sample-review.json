@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "illustrative": true,
+  "note": "Hand-authored example on synthetic work. Not output from a live API run.",
+  "createdAt": "2026-10-02T00:00:00.000Z",
+  "task": "Get approval for a two-week pilot",
+  "plan": {
+    "task": "Make a pilot proposal decision-ready",
+    "purpose": "Help the head of operations approve or reject a bounded experiment",
+    "audience": "Head of operations and three team leads",
+    "stage": "First decision-ready draft",
+    "stakes": "Wasted time, unnecessary spending, and a premature company-wide rollout",
+    "qualityBar": "A feasible two-week pilot, a specific decision request, and a way to judge improvement",
+    "assumptions": [
+      "The brief's no-new-software-budget constraint applies to this proposal"
+    ],
+    "questions": [],
+    "packs": [
+      "writing"
+    ],
+    "lenses": [
+      {
+        "name": "Decision and feasibility",
+        "why": "The reader needs an approvable action, not another discussion",
+        "evidenceNeeded": "Supplied memo and brief; no measured meeting outcomes",
+        "checks": [
+          "Is the proposed commitment bounded?",
+          "Does it respect the existing-tools constraint?",
+          "Can the reader tell what success would mean?"
+        ]
+      }
+    ],
+    "outOfScope": [
+      "Verifying team complaints or tool pricing",
+      "Proving the pilot will save time"
+    ],
+    "stopWhen": "The reader can decide on a feasible pilot and evaluate time and decision quality"
+  },
+  "artifacts": [
+    {
+      "id": "A1",
+      "name": "memo.md",
+      "path": "examples/memo.md",
+      "sha256": "illustrative"
+    }
+  ],
+  "sources": [
+    {
+      "id": "A1",
+      "name": "memo.md",
+      "kind": "text"
+    }
+  ],
+  "limitations": [
+    "Synthetic, hand-authored illustration; not a live model run",
+    "No external facts or real outcomes verified"
+  ],
+  "review": {
+    "verdict": "The core idea is concrete, but this draft asks for the wrong commitment. Make it an existing-tools pilot with a decision request and a success criterion before sending.",
+    "readiness": "needs-work",
+    "findings": [
+      {
+        "id": "F1",
+        "title": "A company-wide purchase is not the pilot the brief calls for",
+        "basis": "goal",
+        "impact": "high",
+        "confidence": "high",
+        "evidence": [
+          {
+            "source": "A1",
+            "kind": "quote",
+            "locator": "L8",
+            "detail": "I propose buying a new collaboration tool and rolling it out to every team."
+          }
+        ],
+        "why": "The head of operations must either reject the spending or reopen scope before considering the meeting experiment.",
+        "action": "Propose a two-week experiment with one team using the current shared document. Keep any software purchase out of this decision.",
+        "verify": "Can the reader approve the pilot without approving new spend or a wider rollout?"
+      },
+      {
+        "id": "F2",
+        "title": "The final line defers the decision",
+        "basis": "goal",
+        "impact": "high",
+        "confidence": "high",
+        "evidence": [
+          {
+            "source": "A1",
+            "kind": "quote",
+            "locator": "L11",
+            "detail": "Let's discuss this next week."
+          }
+        ],
+        "why": "The intended next action is pilot approval; the close creates another meeting instead of making that choice legible.",
+        "action": "Close with an explicit approve-or-reject request and state which owner and team still need confirmation.",
+        "verify": "Ask a reader what decision is being requested. They should identify the pilot, not another discussion."
+      },
+      {
+        "id": "F3",
+        "title": "The proposal cannot distinguish a shorter meeting from a better meeting",
+        "basis": "goal",
+        "impact": "medium",
+        "confidence": "medium",
+        "evidence": [
+          {
+            "source": "A1",
+            "kind": "quote",
+            "locator": "L5",
+            "detail": "The meeting feels slow. Several people have complained."
+          }
+        ],
+        "why": "Subjective frustration establishes a reason to investigate, not whether cutting meeting time preserves decision quality.",
+        "action": "Before the pilot, establish a baseline and propose tracking both time and missed or deferred decisions. Do not invent measurements.",
+        "verify": "After two weeks, compare time and decision quality before recommending broader adoption."
+      }
+    ],
+    "preserve": [
+      {
+        "point": "Keep the specific 60-to-25-minute hypothesis; it gives the pilot a concrete change to test.",
+        "evidence": [
+          {
+            "source": "A1",
+            "kind": "quote",
+            "locator": "L3",
+            "detail": "We should shorten the weekly planning meeting from 60 minutes to 25 minutes."
+          }
+        ]
+      }
+    ],
+    "unknowns": [
+      "Whether 25 minutes is enough for this team's decisions",
+      "Actual meeting costs and missed decisions",
+      "Human outcome validation is still needed"
+    ],
+    "reassessment": []
+  },
+  "challenge": {
+    "verdict": "Illustrative editorial review",
+    "readiness": "needs-work",
+    "decisions": [],
+    "caveats": []
+  },
+  "dropped": [],
+  "calls": []
+}

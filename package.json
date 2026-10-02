@@ -1,0 +1,33 @@
+{
+  "name": "@khosla/redpen",
+  "version": "0.1.0",
+  "description": "Adaptive, evidence-grounded review for knowledge work.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Geet Khosla",
+  "bin": {
+    "redpen": "src/cli.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src",
+    "taste",
+    "README.md",
+    "LICENSE",
+    "examples",
+    "SKILL.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check src/cli.js && node --check src/engine.js && node --check src/artifacts.js && node --check src/llm.js && node --check src/schema.js && node --check src/report.js && node --check src/safety.js"
+  },
+  "dependencies": {
+    "unpdf": "1.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gvkhosla/redpen.git"
+  }
+}
