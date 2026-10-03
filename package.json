@@ -1,35 +1,44 @@
 {
   "name": "@khosla/redpen",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Adaptive, evidence-grounded review for knowledge work.",
   "type": "module",
   "license": "MIT",
   "author": "Geet Khosla",
   "bin": {
-    "redpen": "dist/cli.js"
+    "redpen": "scripts/cli.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "files": [
     "dist",
+    "src",
+    "scripts",
+    "skills",
     "taste",
     "README.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "docs",
     "LICENSE",
     "examples",
     "SKILL.md"
   ],
   "scripts": {
-    "build": "tsc && node --input-type=module -e \"import { chmodSync } from 'node:fs'; chmodSync('dist/cli.js', 0o755)\"",
+    "build": "tsc && node scripts/build-skill.mjs",
     "test": "npm run build && node --test test/*.test.js",
     "check": "tsc --noEmit && tsc -p tsconfig.type-tests.json --noEmit",
-    "prepare": "npm run build",
+    "prepare": "node scripts/prepare.mjs",
     "prepack": "npm run build"
   },
   "dependencies": {
     "effect": "4.0.0",
+    "jiti": "2.7.0",
     "unpdf": "1.8.1"
   },
+  "keywords": ["pi-package", "agent-skill", "review"],
+  "pi": { "skills": ["./skills/redpen"] },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gvkhosla/redpen.git"

@@ -10,6 +10,7 @@ import { plan, review, challenge } from './helpers.js';
 
 const cli = fileURLToPath(new URL('../dist/cli.js', import.meta.url));
 function run(args, cwd, extraEnv = {}, executable = cli) {
+  if (args[0] === 'review') args = [...args, '--api'];
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [executable, ...args], {
       cwd, env: { ...process.env, OPENAI_API_KEY: '', OPENROUTER_API_KEY: '', REDPEN_MODEL: '', REDPEN_BASE_URL: '', ...extraEnv }
@@ -45,7 +46,7 @@ async function setup(t, responses = [plan(), review(), challenge()]) {
 test('help/version require no credentials; unknown flags and missing key fail clearly', async t => {
   const s = await setup(t);
   assert.equal((await run(['--help'], s.dir)).code, 0);
-  assert.equal((await run(['--version'], s.dir)).stdout.trim(), '0.2.0');
+  assert.equal((await run(['--version'], s.dir)).stdout.trim(), '0.3.0');
   assert.equal((await run(['--unknown'], s.dir)).code, 1);
   const noKey = await run(['review', s.input], s.dir);
   assert.equal(noKey.code, 1); assert.match(noKey.stderr, /Set OPENAI_API_KEY/);
@@ -119,7 +120,7 @@ test('error output cannot be forged by a filename containing a newline', async t
 });
 test('SIGINT cancels the request and removes the reserved empty output directory', { timeout: 5000 }, async t => {
   const s = await setup(t, ['stall']), out = join(s.dir, 'interrupted');
-  const child = spawn(process.execPath, [cli, 'review', s.input, '--out', out], { cwd: s.dir, env: { ...process.env, ...s.env } });
+  const child = spawn(process.execPath, [cli, 'review', s.input, '--api', '--out', out], { cwd: s.dir, env: { ...process.env, ...s.env } });
   t.after(() => child.kill('SIGKILL'));
   let stderr = '';
   child.stdout.resume();
@@ -137,5 +138,5 @@ test('npm-style executable symlink runs the CLI, not an inert import', async t =
   await symlink(cli, link);
   const result = await run(['--version'], s.dir, {}, link);
   assert.equal(result.code, 0, result.stderr);
-  assert.equal(result.stdout.trim(), '0.2.0');
+  assert.equal(result.stdout.trim(), '0.3.0');
 });

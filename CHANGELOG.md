@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0
+
+- Agent-first review skill: Pi and portable Agent Skills hosts judge in their
+  existing session, with no separate model API key or agent subprocess.
+- Default review prepares frozen private evidence and phase prompts. next/accept
+  replay the shared Effect engine, validate submissions, ground quotes, and render.
+- Explicit --api retains standalone provider support; API env is ignored by default.
+- Atomic exclusive accepted phases, bounded checksummed snapshots, safe image paths,
+  symlink-resistant workspace reads, resume, and stale/duplicate phase rejection.
+- Portable skill installer, bundled helper/taste references, and Pi package manifest.
+- Production-only Git installs run from source with a bundled Jiti runtime.
+- Retained version-1 reports, approved plans, plan-only review, and reassessment.
+- Added deterministic agent-mode, installation, and source-bootstrap tests.
+- No claims of independently verified taste, visual facts, or improved model quality.
+
 ## 0.2.0
 
 - Migrated source to strict TypeScript, compiled with tsc to dist/.

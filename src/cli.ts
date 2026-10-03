@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { resolve, dirname, join } from 'node:path';
-import { mkdir, writeFile, rmdir, realpath } from 'node:fs/promises';
+import { mkdir, writeFile, rmdir, realpath, cp, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { loadArtifacts, readBoundedFile } from './artifacts.js';
@@ -12,11 +12,15 @@ import { renderReport } from './report.js';
 import { terminalText, serialize } from './safety.js';
 import { errorMessage } from './errors.js';
 import type { PreviousReview, ReviewResult } from './types.js';
+import { prepareAgent, nextAgent, acceptAgent, formatAgentPacket } from './agent.js';
 
 const HELP = `redpen — adaptive review for knowledge work
 
 Usage:
-  redpen review <files...> [options]
+  redpen review <files...> [options]   Prepare a review for your current agent
+  redpen next <workspace>              Show the next phase or finished report
+  redpen accept <workspace> <candidate.json> --phase plan|review|challenge
+  redpen install-skill <new-directory> Copy the portable skill for another agent
 
 Options:
   --task <text>       Intended outcome (otherwise inferred, with uncertainty)
@@ -26,7 +30,9 @@ Options:
   --previous <file>  Reassess a prior review.json against current files
   --feedback <file>  Human corrections or outcome notes for this run
   --out <directory>  New output directory (default: unique .redpen/ directory)
-  --model <name>     Model override (default: gpt-5.5)
+  --api              Opt in to standalone model API calls (requires a key)
+  --phase <name>     Phase being submitted with accept
+  --model <name>     API model override (default: gpt-5.5)
   --base-url <url>   OpenAI-compatible API endpoint
   --json             Print structured JSON instead of Markdown
   --quiet            Suppress progress messages
@@ -35,8 +41,9 @@ Options:
 
 Inputs: Markdown, text, HTML source, CSV, JSON, PDF text, PNG, JPEG, WebP.
 Screenshots require a vision-capable model. PDF visuals are NOT inspected.
-Files and context are sent to your configured model provider.
-Set OPENAI_API_KEY or OPENROUTER_API_KEY. No key? --help still works.
+Default: local preparation and validation; your current agent supplies judgment.
+Use the redpen skill to finish all phases with your existing model access.
+Only --api uses OPENAI_API_KEY or OPENROUTER_API_KEY and sends files directly.
 `;
 
 async function readContext(path?: string): Promise<string> {
@@ -69,15 +76,48 @@ export async function main(args: string[] = process.argv.slice(2), env: NodeJS.P
       task: { type: 'string' }, context: { type: 'string' }, 'plan-only': { type: 'boolean' },
       plan: { type: 'string' }, previous: { type: 'string' }, feedback: { type: 'string' },
       out: { type: 'string' }, model: { type: 'string' }, 'base-url': { type: 'string' },
-      json: { type: 'boolean' }, quiet: { type: 'boolean' },
+      json: { type: 'boolean' }, quiet: { type: 'boolean' }, api: { type: 'boolean' }, phase: { type: 'string' },
       help: { type: 'boolean', short: 'h' }, version: { type: 'boolean' }
     }
   });
   if (values.help || !args.length) { process.stdout.write(HELP); return; }
-  if (values.version) { process.stdout.write('0.2.0\n'); return; }
-  if (positionals[0] !== 'review' || positionals.length < 2) throw new Error('Use: redpen review <files...> [--task "..."]. See --help.');
+  if (values.version) { process.stdout.write('0.3.0\n'); return; }
+  const command = positionals[0];
+  if (command === 'install-skill') {
+    if (positionals.length !== 2) throw new Error('Use: redpen install-skill <new-directory>.');
+    options.signal?.throwIfAborted();
+    const target = resolve(positionals[1]!);
+    await mkdir(dirname(target), { recursive: true, mode: 0o700 });
+    try { await mkdir(target, { mode: 0o700 }); }
+    catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'EEXIST') throw new Error('Skill destination already exists; choose a new directory.');
+      throw error;
+    }
+    try {
+      await cp(new URL('../skills/redpen/', import.meta.url), target, { recursive: true, force: false });
+      options.signal?.throwIfAborted();
+    } catch (error) {
+      await rm(target, { recursive: true, force: true }).catch(() => {});
+      throw error;
+    }
+    process.stdout.write(`Installed skill: ${terminalText(target)}\n`);
+    return;
+  }
+  if (command === 'next' || command === 'accept') {
+    if (values.api) throw new Error('--api applies only to review.');
+    if (positionals.length !== (command === 'next' ? 2 : 3)) throw new Error(`Invalid ${command} arguments. See --help.`);
+    if (command === 'accept' && !['plan', 'review', 'challenge'].includes(values.phase ?? '')) throw new Error('accept requires --phase plan|review|challenge.');
+    const packet = command === 'next' ? await nextAgent(positionals[1]!, options)
+      : await acceptAgent(positionals[1]!, positionals[2]!, values.phase as 'plan' | 'review' | 'challenge', options);
+    process.stdout.write(formatAgentPacket(packet, values.json));
+    return;
+  }
+  if (!['review', 'prepare'].includes(command ?? '') || positionals.length < 2) throw new Error('Use: redpen review <files...> [--task "..."]. See --help.');
+  if (values.phase) throw new Error('--phase applies only to accept.');
+  if (command === 'prepare' && values.api) throw new Error('prepare is local; use review --api for API calls.');
+  if (!values.api && (values.model || values['base-url'])) throw new Error('--model and --base-url require --api; the current agent chooses its own model.');
   if (values['plan-only'] && (values.previous || values.feedback)) throw new Error('--previous and --feedback apply to a full review, not --plan-only.');
-  const config = modelConfig(env, { model: values.model, baseUrl: values['base-url'] });
+  const config = values.api ? modelConfig(env, { model: values.model, baseUrl: values['base-url'] }) : null;
   const bundle = await loadArtifacts(positionals.slice(1), options);
   const context = await readContext(values.context);
   const feedback = await readContext(values.feedback);
@@ -85,8 +125,14 @@ export async function main(args: string[] = process.argv.slice(2), env: NodeJS.P
   const suppliedPlan = values.plan ? await readJson(values.plan) : null;
   const approvedPlan = suppliedPlan ? validatePlan(isRecord(suppliedPlan) && 'plan' in suppliedPlan ? suppliedPlan.plan : suppliedPlan) : null;
   const taste = await loadTaste();
-  const client = createModelClient(config);
   const output = resolve(values.out || join('.redpen', new Date().toISOString().replace(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8)));
+  if (!config) {
+    const packet = await prepareAgent(output, { bundle, task: values.task, context, previous, feedback, taste,
+      planOnly: values['plan-only'], approvedPlan, signal: options.signal });
+    process.stdout.write(formatAgentPacket(packet, values.json));
+    return;
+  }
+  const client = createModelClient(config);
   // Reserve a fresh directory before incurring model cost. Never overwrite input or older runs.
   await mkdir(dirname(output), { recursive: true, mode: 0o700 });
   try { await mkdir(output, { mode: 0o700 }); }

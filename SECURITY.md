@@ -1,25 +1,54 @@
 # Security and privacy
 
-Redpen sends supplied artifact content, images, context, prior findings, and human
-feedback to your configured model endpoint. It is not an offline reviewer.
-Do not submit confidential information unless your provider policy permits it.
+## Existing-agent workflow (default)
 
-Reports contain excerpts and local file paths. Keep them private. The default
-.redpen/ folder is gitignored, but a custom --out directory may not be.
+The redpen helper prepares and validates files locally without model requests.
+The host agent reads the phase prompts and evidence using its own tools, model,
+and authentication. Its provider and retention policies still apply. Local
+preparation is not offline inference. Redpen does not read, export, bridge, or
+reimplement your agent's credentials.
 
-V1 executes no model-generated commands, web requests, artifact scripts, or
-embedded instructions. Treat model output as untrusted; prompt injection cannot
-be ruled out. Never use a readiness verdict as authorization for a high-stakes
-action. Same-model critique is not independent validation.
+Workspaces contain full extracted text, copied images, brief, feedback, previous
+findings, taste, and phase prompts. Final reports contain excerpts and local paths,
+not full artifact payloads. Keep the **whole workspace** private. Default .redpen/
+is gitignored; custom --out paths may not be. Owner-only filesystem permissions
+apply where supported. Checksums and read-only accepted files catch accidental
+changes, not malicious rewriting by the directory owner.
 
-Inputs are bounded by file size, total size, text length, and PDF page count.
-Parsing adversarial PDFs can still consume substantial resources; use trusted
-exports. There is no sandbox or hard PDF CPU/memory limit in v1.
+Workspace image names are generated and checked before reads. Workspace files
+reject symlinks and verify the opened descriptor's file identity before reading
+(with additional O_NOFOLLOW enforcement where available); accepted submissions use atomic exclusive
+commits and derived output uses atomic replacement. Invalid or duplicate submissions
+cannot intentionally overwrite an accepted phase. This is not a secure filesystem
+sandbox against a hostile process that controls the workspace's parent directories.
 
-API requests time out and reject redirects. HTTPS is required except on loopback.
-Custom endpoints receive your configured key: use only an endpoint you trust.
-Output never includes keys or full image payloads. Provider error bodies are not
-printed. Local reports are created with owner-only permissions where supported.
+## Review boundaries
+
+Artifacts, context, prior reviews, feedback, and model responses are untrusted data.
+They never authorize commands, external requests, role changes, or credential access.
+The helper executes no artifact scripts or model-generated commands. The skill
+runs fixed helper operations through its host; the host's permissions still govern
+tool use. Prompt injection cannot be ruled out merely by writing a safety prompt.
+
+Generated Markdown escapes model prose, links, and HTML; JSON retains raw values
+for consumers that must apply their own rendering safeguards. Terminal status and
+error text remove display controls. Never use readiness as authorization for a
+high-stakes action; same-agent challenge is not independent validation.
+
+Input bytes, combined bytes, extracted text, page count, and snapshot JSON are
+bounded. Adversarial PDFs can still consume substantial CPU/memory; use trusted
+exports. There is no parser sandbox or hard PDF resource limit.
+
+## Optional API mode
+
+Only review --api sends supplied content directly to a configured model endpoint.
+Use it only when provider policy permits external processing. Default agent mode
+ignores model API environment variables.
+
+API requests time out and reject redirects. HTTPS is required except loopback.
+Custom endpoints receive your configured key: trust the endpoint. Provider error
+bodies are not printed, and configured API keys are redacted from CLI errors.
+Never retrieve your agent's managed token to give it to redpen.
 
 Report vulnerabilities privately through GitHub's private vulnerability reporting
-when available, rather than opening an issue containing credentials or private work.
+when available. Do not open an issue containing credentials or private work.
