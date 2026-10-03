@@ -1,24 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePlan, validateReview, validateChallenge, groundReview, evidenceProblem } from '../src/schema.js';
+import { validatePlan, validateReview, validateChallenge, groundReview, evidenceProblem } from '../dist/schema.js';
 import { plan, review, bundle, challenge } from './helpers.js';
 
 test('plans reject unsupported packs, missing intent, and too many lenses', () => {
   const p = plan();
-  assert.equal(validatePlan(p), p);
+  assert.deepEqual(validatePlan(p), p);
   assert.throws(() => validatePlan({ ...p, packs: ['magic'] }), /pack/);
   assert.throws(() => validatePlan({ ...p, purpose: '' }), /purpose/);
   assert.throws(() => validatePlan({ ...p, lenses: Array(5).fill(p.lenses[0]) }), /lenses/);
   assert.throws(() => validatePlan({ ...p, lenses: [p.lenses[0], p.lenses[0]] }), /duplicate/);
 });
 test('unknown output fields cannot smuggle artifact payloads into saved reviews', () => {
-  assert.throws(() => validatePlan({ ...plan(), fullArtifact: 'private content' }), /unexpected field/);
+  assert.throws(() => validatePlan({ ...plan(), fullArtifact: 'private content' }), /excess property/);
   const r = review(); r.findings[0].rawImage = 'base64 data';
-  assert.throws(() => validateReview(r), /unexpected field/);
+  assert.throws(() => validateReview(r), /excess property/);
 });
 test('findings require explicit basis, action, evidence, unique IDs', () => {
   const r = review();
-  assert.equal(validateReview(r), r);
+  assert.deepEqual(validateReview(r), r);
   for (const field of ['basis', 'action', 'evidence']) {
     const bad = review(); delete bad.findings[0][field];
     assert.throws(() => validateReview(bad));
@@ -53,14 +53,14 @@ test('reassessment covers every prior finding and requires current evidence', ()
   r.reassessment = [{ previousId: 'F1', status: 'improved', reason: 'A clear ask now exists.', evidence: [] }];
   assert.throws(() => validateReview(r, previous), /evidence/);
   r.reassessment[0].status = 'unverified';
-  assert.equal(validateReview(r, previous), r);
+  assert.deepEqual(validateReview(r, previous), r);
   r.reassessment[0] = { ...r.reassessment[0], status: 'improved', evidence: [{ source: 'A1', kind: 'quote', locator: 'L1', detail: 'Not in this document.' }] };
   const g = groundReview(r, bundle().sources);
   assert.equal(g.review.reassessment[0].status, 'unverified');
 });
 test('challenge cannot omit IDs, duplicate decisions or introduce new findings', () => {
   const r = review(), c = challenge();
-  assert.equal(validateChallenge(c, r), c);
+  assert.deepEqual(validateChallenge(c, r), c);
   assert.throws(() => validateChallenge({ ...c, decisions: [] }, r));
   assert.throws(() => validateChallenge({ ...c, decisions: [{ ...c.decisions[0], id: 'F9' }] }, r), /exactly once/);
   assert.throws(() => validateChallenge({ ...c, readiness: 'perfect' }, r), /readiness/);

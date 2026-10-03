@@ -16,7 +16,7 @@ feedback informs the next pass.
 Requires **Node 22+** and an OpenAI-compatible model API.
 
 ```sh
-npm install -g git+https://github.com/gvkhosla/redpen.git#v0.1.0
+npm install -g git+https://github.com/gvkhosla/redpen.git#v0.2.0
 export OPENAI_API_KEY="your-key"
 
 redpen review ./memo.md --task "Help the team make a decision"
@@ -32,7 +32,7 @@ cd redpen
 npm ci
 export OPENAI_API_KEY="your-key"
 
-node src/cli.js review examples/memo.md \
+node dist/cli.js review examples/memo.md \
   --context examples/brief.md \
   --task "Get approval for a two-week pilot" \
   --out .redpen/first-review
@@ -165,10 +165,15 @@ Screenshot inputs also require image support. HTTPS is required, except for
 loopback endpoints. Custom endpoints receive your key: trust the endpoint.
 
 No automatic `.env` loading. Export variables, or use Node's `--env-file=.env`
-when running the source directly. Never commit a real key.
+when running `dist/cli.js` directly. Never commit a real key.
 
 Exit **0** = review completed; **1** = configuration, parsing, transport, or
-validation error. A successful command is **not** approval to ship.
+validation error. **130** = SIGINT cancellation; **143** = SIGTERM cancellation.
+A successful command is **not** approval to ship. Interrupting a review aborts
+in-flight model transport, stops later phases, and removes an empty reserved
+output directory. The per-attempt timeout covers the response body as well as
+connection setup. PDF parser acquisition cannot be interrupted safely; cleanup
+runs once it finishes. This is not a hard PDF CPU/memory sandbox.
 
 Generated Markdown treats model text as escaped prose: no active HTML, remote
 images, model-generated links, or terminal control sequences. Raw structured
@@ -179,6 +184,24 @@ values remain in JSON; treat them as untrusted if you build another renderer.
 Install the CLI, then copy [SKILL.md](SKILL.md) into your agent's skills directory.
 Provide the task and context from the working conversation, inspect the plan,
 run the review, and apply judgment to the findings—not blind obedience.
+
+## Implementation
+
+Strict TypeScript source lives in `src/`; `tsc` builds executable JavaScript and
+declarations into `dist/`. The CLI and report formatting stay straightforward.
+
+Effect 4 is used where it earns its keep:
+- Runtime schemas infer plan/finding/evidence types and generate model JSON Schemas.
+- The engine composes planning, review, and challenge as one Effect program.
+- Transport failures are tagged, transient-status retries are bounded, and abort
+  signals propagate through the whole review.
+- Scopes own response cancellation and PDF document cleanup.
+
+`runReview(request)` remains a Promise interface. `reviewEffect(request)` is the
+native composition interface; model adapters implement `completeEffect`.
+No layers or services for every function, browser tooling, or new review behavior
+were added in this migration. Saved JSON remains version 1; prior v0.1 reviews
+and edited plans remain readable.
 
 ## Develop
 
@@ -191,7 +214,14 @@ npm pack --dry-run
 
 Node's built-in tests cover parsing, quote grounding, schemas, provider handling,
 plan selection, challenge cuts, reassessment, CLI execution, and packaging-style
-symlinks. Transport integration tests use a local fake API. CI runs Node 22 and 24.
+symlinks. Regression tests also cover typed failures, bounded retries, full-request
+timeouts, interruption, scope cleanup, and CLI SIGINT handling. Compile-only type
+tests guard evidence and error unions. Transport integration tests use a local
+fake API. CI runs Node 22 and 24.
+
+Git installs build through `prepare`; package archives contain compiled `dist/`
+and taste files. `npm ci` also builds; after `npm ci --ignore-scripts`, run
+`npm run build` before invoking the CLI.
 
 Automated tests prove deterministic behavior, **not review quality**. To calibrate:
 review known examples yourself, run redpen, compare important misses, false

@@ -1,4 +1,5 @@
-import { CONTRACTS } from '../src/schema.js';
+import { CONTRACTS } from '../dist/schema.js';
+import { Effect } from 'effect';
 export const plan = () => structuredClone(CONTRACTS.plan);
 export function review() {
   const r = structuredClone(CONTRACTS.review);
@@ -17,10 +18,15 @@ export function mockClient(responses) {
   const requests = [], calls = [];
   return {
     requests, calls,
-    async complete(request) {
-      requests.push(request); calls.push({ phase: request.phase, model: 'mock', usage: null });
-      if (!responses.length) throw new Error('Unexpected model call');
-      return request.validate(structuredClone(responses.shift()));
+    completeEffect(request) {
+      return Effect.try({
+        try: () => {
+          requests.push(request); calls.push({ phase: request.phase, model: 'mock', usage: null });
+          if (!responses.length) throw new Error('Unexpected model call');
+          return request.validate(structuredClone(responses.shift()));
+        },
+        catch: error => error
+      });
     }
   };
 }

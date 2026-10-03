@@ -1,12 +1,13 @@
 import { mapStrings, markdownText } from './safety.js';
+import type { ReviewResult } from './types.js';
 
-function evidenceLines(evidence) {
+function evidenceLines(evidence: readonly { readonly source: string; readonly locator: string; readonly kind: string; readonly detail: string }[]): string {
   return evidence.map(e => `  - **${e.source} · ${e.locator}** (${e.kind}): ${e.detail}`).join('\n');
 }
 
-export function renderReport(result) {
+export function renderReport(input: ReviewResult): string {
   // Model output and artifact names are prose, never executable Markdown/HTML.
-  result = mapStrings(result, markdownText);
+  const result = mapStrings(input, markdownText);
   const p = result.plan;
   const lines = [
     '# redpen', '', '## Review setup', '',
@@ -36,7 +37,7 @@ export function renderReport(result) {
       r.reassessment.forEach(s => lines.push(`- **${s.previousId}: ${s.status}** — ${s.reason}`, evidenceLines(s.evidence), ''));
     }
     lines.push('## Unknowns and limits', '', ...r.unknowns.map(u => `- ${u}`), '');
-    if (result.dropped.length) lines.push('## Findings cut by review checks', '', ...result.dropped.map(d => `- **${d.id}:** ${d.reason}`), '');
+    if (result.dropped?.length) lines.push('## Findings cut by review checks', '', ...result.dropped.map(d => `- **${d.id}:** ${d.reason}`), '');
   } else {
     lines.push('## Inspection limits', '', ...result.limitations.map(l => `- ${l}`), '');
   }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { terminalText, markdownText, serialize } from '../src/safety.js';
-import { renderReport } from '../src/report.js';
+import { terminalText, markdownText, serialize } from '../dist/safety.js';
+import { renderReport } from '../dist/report.js';
 import { plan, review, bundle } from './helpers.js';
 
 test('terminal escape sequences and display overrides cannot execute', () => {

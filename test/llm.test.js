@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { modelConfig, createModelClient } from '../src/llm.js';
-import { validatePlan, CONTRACTS } from '../src/schema.js';
+import { modelConfig, createModelClient } from '../dist/llm.js';
+import { validatePlan, CONTRACTS } from '../dist/schema.js';
 import { plan } from './helpers.js';
 
 const config = { apiKey: 'test-secret', baseUrl: 'https://model.example/v1', model: 'test-model' };

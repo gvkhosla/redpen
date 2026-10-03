@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadArtifacts, artifactMessages, sourceManifest, readBoundedFile } from '../src/artifacts.js';
+import { loadArtifacts, artifactMessages, sourceManifest, readBoundedFile } from '../dist/artifacts.js';
 import { makePdf } from './helpers.js';
 
 async function files(t, entries) {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runReview, loadTaste } from '../src/engine.js';
-import { renderReport } from '../src/report.js';
+import { runReview, loadTaste } from '../dist/engine.js';
+import { renderReport } from '../dist/report.js';
 import { plan, review, bundle, mockClient, challenge } from './helpers.js';
 
 test('task → plan → grounded review → challenge produces a report and audit trail', async () => {
